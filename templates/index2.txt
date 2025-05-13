@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Q&A System</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section {
+            margin-bottom: 25px;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+
+        .question-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .questions-list {
+            margin: 15px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .questions-list li {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button.secondary {
+            background-color: #6c757d;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+
+        .result-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Context Section -->
+        <div class="section" id="contextSection">
+            <div class="input-group">
+                <label for="context">First, provide the context for your questions:</label>
+                <textarea id="context" placeholder="Paste your text context here..."></textarea>
+            </div>
+            <button onclick="submitContext()">Continue to Questions</button>
+        </div>
+
+        <!-- Questions Section -->
+        <div class="section hidden" id="questionsSection">
+            <div class="input-group">
+                <label for="question">Enter your questions (one per line):</label>
+                <textarea id="question" placeholder="Enter each question on a new line..."></textarea>
+            </div>
+            <div class="questions-list" id="questionsList"></div>
+            <button onclick="processQuestions()">Get Answers</button>
+        </div>
+
+        <!-- Answer Section -->
+        <div class="section hidden" id="answerSection">
+            <div class="result-section">
+                <h3>Answer:</h3>
+                <p id="answerText"></p>
+                <div class="actions">
+                    <button onclick="generateImage()">Generate Image</button>
+                    <button class="secondary" onclick="nextQuestion()">Next Question</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Section -->
+        <div class="section hidden" id="imageSection">
+            <div class="result-section">
+                <h3>Generated Image:</h3>
+                <img id="generatedImage" src="" alt="Generated image will appear here">
+                <div class="actions">
+                    <button onclick="generate3D()">Generate 3D Model</button>
+                    <button class="secondary" onclick="skipGeneration()">Skip & Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3D Model Section -->
+        <div class="section hidden" id="threeDSection">
+            <div class="result-section">
+                <h3>3D Model Preview:</h3>
+                <img id="modelPreview" src="" alt="3D model preview">
+                <div class="actions">
+                    <a id="downloadModel" href="" download>
+                        <button>Download 3D Model</button>
+                    </a>
+                    <button class="secondary" onclick="nextQuestion()">Next Question</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let currentQuestionIndex = 0;
+
+        function submitContext() {
+            const context = $('#context').val().trim();
+            if (!context) {
+                alert('Please provide context before continuing.');
+                return;
+            }
+            $('#contextSection').addClass('disabled');
+            $('#questionsSection').removeClass('hidden');
+        }
+
+        function processQuestions() {
+            const questionText = $('#question').val().trim();
+            if (!questionText) {
+                alert('Please enter at least one question.');
+                return;
+            }
+
+            questions = questionText.split('\n').filter(q => q.trim());
+            if (questions.length === 0) {
+                alert('Please enter valid questions.');
+                return;
+            }
+
+            $('#questionsList').html(questions.map(q => `<li>${q}</li>`).join(''));
+            currentQuestionIndex = 0;
+            processCurrentQuestion();
+        }
+
+        function processCurrentQuestion() {
+            const context = $('#context').val();
+            const question = questions[currentQuestionIndex];
+
+            $('#questionsSection').addClass('disabled');
+            $('#answerSection').removeClass('hidden');
+            $('#answerText').html('<div class="loading">Getting answer...</div>');
+
+            $.ajax({
+                url: '/process',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ context, question }),
+                success: function(response) {
+                    $('#answerText').text(response.answer);
+                },
+                error: function(error) {
+                    $('#answerText').text('Error: ' + error.responseJSON.error);
+                }
+            });
+        }
+
+        function generateImage() {
+            const answer = $('#answerText').text();
+            
+            $('#imageSection').removeClass('hidden');
+            $('#generatedImage').attr('src', '');
+            $('#imageSection .result-section').prepend('<div class="loading">Generating image...</div>');
+            
+            $.ajax({
+                url: '/generate_image',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ prompt: answer }),
+                success: function(response) {
+                    $('.loading').remove();
+                    $('#generatedImage').attr('src', response.image_url);
+                },
+                error: function(error) {
+                    $('.loading').remove();
+                    alert('Error generating image: ' + error.responseJSON.error);
+                }
+            });
+        }
+
+        function generate3D() {
+            const answer = $('#answerText').text();
+            
+            $('#threeDSection').removeClass('hidden');
+            $('#modelPreview').attr('src', '');
+            $('#threeDSection .result-section').prepend('<div class="loading">Generating 3D model...</div>');
+            
+            $.ajax({
+                url: '/generate_3d',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ prompt: answer }),
+                success: function(response) {
+                    $('.loading').remove();
+                    $('#modelPreview').attr('src', response.preview_url);
+                    $('#downloadModel').attr('href', response.model_url);
+                },
+                error: function(error) {
+                    $('.loading').remove();
+                    alert('Error generating 3D model: ' + error.responseJSON.error);
+                }
+            });
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                // Reset sections for next question
+                $('#answerSection, #imageSection, #threeDSection').addClass('hidden');
+                $('#questionsSection').removeClass('disabled');
+                processCurrentQuestion();
+            } else {
+                // Reset everything for new session
+                resetAll();
+            }
+        }
+
+        function skipGeneration() {
+            $('#imageSection, #threeDSection').addClass('hidden');
+            nextQuestion();
+        }
+
+        function resetAll() {
+            questions = [];
+            currentQuestionIndex = 0;
+            $('#context').val('');
+            $('#question').val('');
+            $('#questionsList').empty();
+            $('.section').removeClass('disabled hidden');
+            $('#answerSection, #imageSection, #threeDSection').addClass('hidden');
+        }
+    </script>
+</body>
+</html>

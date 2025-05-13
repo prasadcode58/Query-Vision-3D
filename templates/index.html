@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Vision 3D</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #121c2e;
+            --text-primary: #e6eaf0;
+            --text-secondary: #a0b4c8;
+            --accent-start: #3b82f6;
+            --accent-end: #9333ea;
+            --accent-hover: #2563eb;
+            --border-color: #1e2d4a;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary), #0c1322);
+            color: var(--text-primary);
+            line-height: 1.7;
+            padding: 3rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: linear-gradient(to bottom right, var(--bg-secondary), #1a2740);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 
+                0 25px 50px var(--shadow-color), 
+                0 10px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text-primary);
+            margin-bottom: 2.5rem;
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: linear-gradient(to right, rgba(30, 41, 59, 0.4), rgba(30, 41, 59, 0.2));
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="file"], 
+        input[type="text"], 
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        input[type="file"]:focus,
+        input[type="text"]:focus, 
+        textarea:focus {
+            border-color: var(--accent-start);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .flex {
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            background: linear-gradient(to right, var(--accent-start), var(--accent-end));
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        button.w-full {
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+
+        #answer-section {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .generated-content {
+            margin-top: 1.5rem;
+            text-align: center;
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .generated-content img, 
+        .generated-content model-viewer {
+            max-width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent-start);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Query Vision 3D</h1>
+        
+        <div class="section">
+            <label for="pdf-upload">Upload PDF</label>
+            <div class="flex">
+                <input type="file" 
+                       id="pdf-upload" 
+                       accept=".pdf">
+                <button onclick="uploadPDF()">
+                    Upload
+                </button>
+            </div>
+            <p id="pdf-upload-status"></p>
+        </div>
+
+        <div class="section">
+            <label for="context">Context</label>
+            <textarea id="context" 
+                      placeholder="Enter your context or paste PDF text here..."></textarea>
+        </div>
+
+        <div class="section">
+            <label for="question">Question</label>
+            <input type="text" 
+                   id="question" 
+                   placeholder="Ask a question about the context">
+        </div>
+
+        <button onclick="processQA()" 
+                class="w-full">
+            Get Answer
+        </button>
+
+        <div id="answer-section" class="hidden">
+            <h3>Answer:</h3>
+            <p id="answer-text"></p>
+        </div>
+
+        <div class="section">
+            <h2>Image Generation</h2>
+            <input type="text" 
+                   id="image-prompt" 
+                   placeholder="Enter image generation prompt">
+            <button onclick="generateImage()">
+                Generate Image
+            </button>
+            <div id="generated-image" class="generated-content"></div>
+        </div>
+
+        <div class="section">
+            <h2>3D Model Generation</h2>
+            <input type="text" 
+                   id="3d-prompt" 
+                   placeholder="Enter 3D model generation prompt">
+            <button onclick="generate3DModel()">
+                Generate 3D Model
+            </button>
+            <div id="generated-3d-model" class="generated-content"></div>
+        </div>
+    </div>
+
+    <script>
+        function uploadPDF() {
+            const fileInput = document.getElementById('pdf-upload');
+            const statusElement = document.getElementById('pdf-upload-status');
+            const contextElement = document.getElementById('context');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                statusElement.textContent = 'Please select a PDF file';
+                statusElement.style.color = 'red';
+                return;
+            }
+
+            statusElement.textContent = 'Uploading and extracting text...';
+            statusElement.style.color = 'blue';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload_pdf', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    contextElement.value = data.text;
+                    statusElement.textContent = 'PDF text extracted successfully!';
+                    statusElement.style.color = 'green';
+                } else {
+                    statusElement.textContent = data.error || 'Failed to upload PDF';
+                    statusElement.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusElement.textContent = 'An error occurred during upload';
+                statusElement.style.color = 'red';
+            });
+        }
+
+        function processQA() {
+            const context = document.getElementById('context').value.trim();
+            const question = document.getElementById('question').value.trim();
+            const answerSection = document.getElementById('answer-section');
+            const answerText = document.getElementById('answer-text');
+            const imagePromptInput = document.getElementById('image-prompt');
+            const modelPromptInput = document.getElementById('3d-prompt');
+
+            if (!context || !question) {
+                alert('Please provide context and a question');
+                return;
+            }
+
+            answerSection.classList.add('hidden');
+            answerText.innerHTML = `
+                <div class="loading-container">
+                    <p>Processing your question</p>
+                    <div class="spinner"></div>
+                </div>
+            `;
+            answerSection.classList.remove('hidden');
+
+            fetch('/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ context, question })
+            })
+            .then(response => response.json())
+            .then(result => {
+                answerText.textContent = result.answer;
+                imagePromptInput.value = result.answer;
+                modelPromptInput.value = result.answer;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                answerText.innerHTML = '<p style="color: red;">An error occurred while processing your question</p>';
+            });
+        }
+
+        function generateImage() {
+            const prompt = document.getElementById('image-prompt').value.trim();
+            const generatedImageDiv = document.getElementById('generated-image');
+
+            if (!prompt) {
+                alert('Please enter a prompt for image generation');
+                return;
+            }
+
+            generatedImageDiv.innerHTML = `
+                <div class="loading-container">
+                    <p>Generating image</p>
+                    <div class="spinner"></div>
+                </div>
+            `;
+
+            fetch('/generate_image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    generatedImageDiv.innerHTML = `<img src="${result.image_url}" alt="Generated Image">`;
+                } else {
+                    generatedImageDiv.innerHTML = `<p style="color: red;">${result.error}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                generatedImageDiv.innerHTML = '<p style="color: red;">Failed to generate image</p>';
+            });
+        }
+
+        function generate3DModel() {
+            const prompt = document.getElementById('3d-prompt').value.trim();
+            const generated3DModelDiv = document.getElementById('generated-3d-model');
+
+            if (!prompt) {
+                alert('Please enter a prompt for 3D model generation');
+                return;
+            }
+
+            generated3DModelDiv.innerHTML = `
+                <div class="loading-container">
+                    <p>Generating 3D model</p>
+                    <div class="spinner"></div>
+                </div>
+            `;
+
+            fetch('/generate_3d', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    generated3DModelDiv.innerHTML = `
+                        <div class="model-container">
+                            <model-viewer 
+                                src="${result.model_url}" 
+                                alt="Generated 3D Model"
+                                auto-rotate 
+                                camera-controls
+                                shadow-intensity="1"
+                                exposure="1">
+                            </model-viewer>
+                        </div>`;
+                } else {
+                    generated3DModelDiv.innerHTML = `<p style="color: red;">${result.error}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                generated3DModelDiv.innerHTML = '<p style="color: red;">Failed to generate 3D model</p>';
+            });
+        }
+    </script>
+</body>
+</html>

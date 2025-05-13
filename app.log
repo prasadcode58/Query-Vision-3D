@@ -1,0 +1,10 @@
+2024-11-11 13:30:18,299 - INFO - Serving on http://0.0.0.0:5000
+2024-11-11 13:33:54,581 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:34:05,654 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:34:08,709 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:34:14,677 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:35:03,382 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:38:29,369 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:38:34,784 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:38:35,000 - ERROR - Error launching 3D generator: No module named 'improved_text23d'
+2024-11-11 13:43:29,182 - INFO - Serving on http://0.0.0.0:5000
